@@ -1,12 +1,17 @@
 {
-  "name": "cozy-konnector-template",
+  "name": "mediapart",
   "version": "1.0.0",
-  "description": "",
+  "description": "Fetch Mediapart bills",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/konnectors/cozy-konnector-template.git"
+    "url": "git+https://github.com/edas/cozy-konnector-mediapart.git"
   },
-  "keywords": [],
+  "keywords": [
+    "cozy",
+    "mediapart",
+    "press",
+    "konnector"
+  ],
   "author": "Cozy Cloud",
   "license": "AGPL-3.0",
   "main": "./src/index.js",

@@ -1,14 +1,14 @@
 {
   "version": "1.0.0",
-  "name": "Connector template",
+  "name": "Mediapart",
   "type": "konnector",
   "language": "node",
   "icon": "icon.png",
-  "slug": "template",
-  "source": "git://github.com/konnectors/cozy-konnector-template.git",
+  "slug": "mediapart",
+  "source": "git://github.com/edas/cozy-konnector-mediapart.git",
   "editor": "Cozy",
-  "vendor_link": "Link to the target website",
-  "categories": ["other"],
+  "vendor_link": "https://www.mediapart.fr/",
+  "categories": ["press"],
   "fields": {
     "login": {
       "type": "text"
@@ -49,8 +49,8 @@
   "langs": ["fr", "en"],
   "locales": {
     "fr": {
-      "short_description": "Template de connecteur",
-      "long_description": "Ce template récupère une liste de livres sur un site de scraping",
+      "short_description": "Connecteur Cozy Mediapart",
+      "long_description": "Ce connecteur récupère vos factures Mediapart dans votre Cozy",
       "permissions": {
         "bank operations": {
           "description": "Utilisé pour relier les factures à des operations bancaires"
@@ -67,8 +67,8 @@
       }
     },
     "en": {
-      "short_description": "Connector template",
-      "long_description": "This template fetches a list of books from a scraping website",
+      "short_description": "Mediapart Cozy Connector",
+      "long_description": "This template fetches your Mediapart.fr bills",
       "permissions": {
         "bank operations": {
           "description": "Required to link bank operations to bills"
