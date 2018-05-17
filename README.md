@@ -1,0 +1,1 @@
+cozy-connector-mediapart
