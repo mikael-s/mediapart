@@ -2,10 +2,10 @@ const {
   BaseKonnector,
   requestFactory,
   signin,
-  scrape,
   saveBills,
   log
 } = require('cozy-konnector-libs')
+const moment = require('moment')
 const request = requestFactory({
   // the debug mode shows all the details about http request and responses. Very usefull for
   // debugging but very verbose. That is why it is commented out by default
@@ -19,8 +19,6 @@ const request = requestFactory({
   jar: true
 })
 
-const baseUrl = 'http://books.toscrape.com'
-
 module.exports = new BaseKonnector(start)
 
 // The start function is run by the BaseKonnector instance only when it got all the account
@@ -31,12 +29,20 @@ async function start(fields) {
   await authenticate(fields.login, fields.password)
   log('info', 'Successfully logged in')
   // The BaseKonnector instance expects a Promise as return of the function
-  log('info', 'Fetching the list of documents')
-  const $ = await request(`${baseUrl}/index.html`)
+  log('info', 'Getting the session id')
+  const $compte = await request('https://moncompte.mediapart.fr/')
+  const session = $compte('iframe[src*=moncompte]')
+    .first()
+    .attr('src')
+    .match(/sess=([^&]*)/)[1]
   // cheerio (https://cheerio.js.org/) uses the same api as jQuery (http://jquery.com/)
+  log('info', 'Fetching the list of documents')
+  const $list = await request(
+    `https://moncompte.mediapart.fr/base/moncompte/ajax/index.php?abonnement=0&sess=${session}`
+  )
   log('info', 'Parsing list of documents')
-  const documents = await parseDocuments($)
-
+  const documents = await parseDocuments($list)
+  log('debug', documents, 'docs')
   // here we use the saveBills function even if what we fetch are not bills, but this is the most
   // common case in connectors
   log('info', 'Saving data to Cozy')
@@ -44,26 +50,27 @@ async function start(fields) {
     // this is a bank identifier which will be used to link bills to bank operations. These
     // identifiers should be at least a word found in the title of a bank operation related to this
     // bill. It is not case sensitive.
-    identifiers: ['books']
+    keys: ['vendor', 'billId'],
+    identifiers: ['mediapart']
   })
 }
 
 // this shows authentication using the [signin function](https://github.com/konnectors/libs/blob/master/packages/cozy-konnector-libs/docs/api.md#module_signin)
 // even if this in another domain here, but it works as an example
-function authenticate(username, password) {
+function authenticate(name, password) {
   return signin({
-    url: `http://quotes.toscrape.com/login`,
-    formSelector: 'form',
-    formData: { username, password },
+    url: 'https://www.mediapart.fr/',
+    formSelector: '#logFormEl',
+    formData: { name, password },
     // the validate function will check if
     validate: (statusCode, $) => {
       // The login in toscrape.com always works excepted when no password is set
-      if ($(`a[href='/logout']`).length === 1) {
+      if ($(`a[href='/logout']`).length === 2) {
         return true
       } else {
         // cozy-konnector-libs has its own logging function which format these logs with colors in
         // standalone and dev mode and as JSON in production mode
-        log('error', $('.error').text())
+        log('error', $('.js-flash-message .error').text())
         return false
       }
     }
@@ -74,54 +81,42 @@ function authenticate(username, password) {
 // and return an array of js objects which will be saved to the cozy by saveBills (https://github.com/cozy/cozy-konnector-libs/blob/master/docs/api.md#savebills)
 function parseDocuments($) {
   // you can find documentation about the scrape function here :
-  // https://github.com/konnectors/libs/blob/master/packages/cozy-konnector-libs/docs/api.md#scrape
-  const docs = scrape(
-    $,
-    {
-      title: {
-        sel: 'h3 a',
-        attr: 'title'
-      },
-      amount: {
-        sel: '.price_color',
-        parse: normalizePrice
-      },
-      url: {
-        sel: 'h3 a',
-        attr: 'title',
-        parse: url => `${baseUrl}/${url}`
-      },
-      fileurl: {
-        sel: 'img',
-        attr: 'src',
-        parse: src => `${baseUrl}/${src}`
-      },
-      filename: {
-        sel: 'h3 a',
-        attr: 'title',
-        parse: title => `${title}.jpg`
+  const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d).*(\d+,\d\d)\s+(\S+).*/
+  const vendor = 'Mediapart'
+  const date = new Date()
+  const version = 1
+  const metadata = { date, version }
+  return $('table li')
+    .map(function(idx, li) {
+      const [, start, end, price, currency] = $(li)
+        .text()
+        .match(re)
+      const oStart = moment.utc(start, 'DD/MM/YYYY')
+      const oEnd = moment.utc(end, 'DD/MM/YYYY')
+      const startDate = oStart.format('YYYY-MM-DD')
+      const endDate = oEnd.format('YYYY-MM-DD')
+      const date = oEnd.toDate()
+      const href = $('a', li)
+        .first()
+        .attr('href')
+      const fileurl = `https://moncompte.mediapart.fr/base/moncompte/${href}`
+      const billId = href.match(/get_facture=([^&]+)/)[1]
+      const title = `Mediapart ${billId} ${startDate} - ${endDate}`
+      const filename = `mediapart_${billId}_${startDate}_${endDate}.pdf`
+      const amount = parseFloat(price.replace(',', '.'))
+      return {
+        title,
+        metadata,
+        date,
+        startDate,
+        endDate,
+        amount,
+        vendor,
+        billId,
+        currency,
+        filename,
+        fileurl
       }
-    },
-    'article'
-  )
-  return docs.map(doc => ({
-    ...doc,
-    // the saveBills function needs a date field
-    // even if it is a little artificial here (these are not real bills)
-    date: new Date(),
-    currency: '€',
-    vendor: 'template',
-    metadata: {
-      // it can be interesting that we add the date of import. This is not mandatory but may be
-      // usefull for debugging or data migration
-      importDate: new Date(),
-      // document version, usefull for migration after change of document structure
-      version: 1
-    }
-  }))
-}
-
-// convert a price string to a float
-function normalizePrice(price) {
-  return parseFloat(price.trim().replace('£', ''))
+    })
+    .get()
 }
