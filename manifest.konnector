@@ -68,7 +68,7 @@
     },
     "en": {
       "short_description": "Mediapart Cozy Connector",
-      "long_description": "This template fetches your Mediapart.fr bills",
+      "long_description": "This connector fetches your Mediapart.fr bills",
       "permissions": {
         "bank operations": {
           "description": "Required to link bank operations to bills"
