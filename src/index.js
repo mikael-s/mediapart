@@ -5,6 +5,11 @@ const {
   saveBills,
   log
 } = require('cozy-konnector-libs')
+
+process.env.SENTRY_DSN =
+  process.env.SENTRY_DSN ||
+  'https://56c58c44aec84354b340322da288e886:a73efbf1f254487e9b9d5c6f2dac9a83@sentry.cozycloud.cc/60'
+
 const moment = require('moment')
 const request = requestFactory({
   // the debug mode shows all the details about http request and responses. Very usefull for
@@ -28,14 +33,12 @@ async function start(fields) {
   log('info', 'Authenticating ...')
   await authenticate(fields.login, fields.password)
   log('info', 'Successfully logged in')
-  // The BaseKonnector instance expects a Promise as return of the function
   log('info', 'Getting the session id')
   const $compte = await request('https://moncompte.mediapart.fr/')
   const session = $compte('iframe[src*=moncompte]')
     .first()
     .attr('src')
     .match(/sess=([^&]*)/)[1]
-  // cheerio (https://cheerio.js.org/) uses the same api as jQuery (http://jquery.com/)
   log('info', 'Fetching the list of documents')
   const $list = await request(
     `https://moncompte.mediapart.fr/base/moncompte/ajax/index.php?abonnement=0&sess=${session}`
@@ -43,15 +46,10 @@ async function start(fields) {
   log('info', 'Parsing list of documents')
   const documents = await parseDocuments($list)
   log('debug', documents, 'docs')
-  // here we use the saveBills function even if what we fetch are not bills, but this is the most
-  // common case in connectors
   log('info', 'Saving data to Cozy')
   await saveBills(documents, fields.folderPath, {
-    // this is a bank identifier which will be used to link bills to bank operations. These
-    // identifiers should be at least a word found in the title of a bank operation related to this
-    // bill. It is not case sensitive.
-    keys: ['vendor', 'billId'],
-    identifiers: ['mediapart']
+    keys: ['vendor', 'billId'], // deduplication keys
+    identifiers: ['mediapart'] // bank operations
   })
 }
 
