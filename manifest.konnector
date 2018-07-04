@@ -85,5 +85,6 @@
       }
     }
   },
+  "banksTransactionRegExp": "\\bmediapart\\b",
   "manifest_version": "2"
 }
