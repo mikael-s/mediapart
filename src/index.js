@@ -79,7 +79,7 @@ function authenticate(name, password) {
 // and return an array of js objects which will be saved to the cozy by saveBills (https://github.com/cozy/cozy-konnector-libs/blob/master/docs/api.md#savebills)
 function parseDocuments($) {
   // you can find documentation about the scrape function here :
-  const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d).*(\d+,\d\d)\s+(\S+).*/
+  const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s.]*(\d+,\d\d)\s+(\S+).*/
   const vendor = 'Mediapart'
   const date = new Date()
   const version = 1
