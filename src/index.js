@@ -86,7 +86,7 @@ function parseDocuments($) {
 
   const listOfRecents = $('table li')
     .map(function(idx, li) {
-      const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d).*(\d+,\d\d)\s+(\S+).*/
+      const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s.]*(\d+,\d\d)\s+(\S+).*/
       const [, start, end, price, currency] = $(li)
         .text()
         .match(re)
