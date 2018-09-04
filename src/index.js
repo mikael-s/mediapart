@@ -78,14 +78,15 @@ function authenticate(name, password) {
 // The goal of this function is to parse a html page wrapped by a cheerio instance
 // and return an array of js objects which will be saved to the cozy by saveBills (https://github.com/cozy/cozy-konnector-libs/blob/master/docs/api.md#savebills)
 function parseDocuments($) {
-  // you can find documentation about the scrape function here :
-  const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s.]*(\d+,\d\d)\s+(\S+).*/
+  // Common constantes
   const vendor = 'Mediapart'
   const date = new Date()
   const version = 1
   const metadata = { date, version }
-  return $('table li')
+
+  const listOfRecents = $('table li')
     .map(function(idx, li) {
+      const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s.]*(\d+,\d\d)\s+(\S+).*/
       const [, start, end, price, currency] = $(li)
         .text()
         .match(re)
@@ -117,4 +118,58 @@ function parseDocuments($) {
       }
     })
     .get()
+
+  // This table is different, need to be scrape separatly
+  let listOfOlds = []
+  if ($('table').length >= 2) {
+    listOfOlds = $('table')
+      .eq(1)
+      .find('tr')
+      .filter(function(idx) {
+        // Filter 2 first lines of this table because of html junk
+        return !(idx === 0 || idx === 1)
+      })
+      .map(function(idx, tr) {
+        const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d).*/
+        const [, start, end] = $(tr)
+          .find('td')
+          .text()
+          .trim()
+          .match(re)
+        const oStart = moment.utc(start, 'DD/MM/YYYY')
+        const oEnd = moment.utc(end, 'DD/MM/YYYY')
+        const startDate = oStart.format('YYYY-MM-DD')
+        const endDate = oEnd.format('YYYY-MM-DD')
+        const date = oEnd.toDate()
+        const [price, currency] = $(tr)
+          .find('td')
+          .eq(1)
+          .text()
+          .trim()
+          .split('\xa0') // Unbreakable space
+        const href = $('a', tr)
+          .first()
+          .attr('href')
+        const fileurl = `https://moncompte.mediapart.fr/base/moncompte/${href}`
+        const billId = href.match(/get_facture=([^&]+)/)[1]
+        const title = `Mediapart ${billId} ${startDate} - ${endDate}`
+        const filename = `mediapart_${billId}_${startDate}_${endDate}.pdf`
+        const amount = parseFloat(price.replace(',', '.'))
+        return {
+          title,
+          metadata,
+          date,
+          startDate,
+          endDate,
+          amount,
+          vendor,
+          billId,
+          currency,
+          filename,
+          fileurl
+        }
+      })
+      .get()
+  }
+  return listOfRecents.concat(listOfOlds)
 }
