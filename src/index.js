@@ -122,7 +122,6 @@ function parseDocuments($) {
   // This table is different, need to be scrape separatly
   let listOfOlds = []
   if ($('table').length >= 2) {
-    //working
     listOfOlds = $('table')
       .eq(1)
       .find('tr')
@@ -170,7 +169,7 @@ function parseDocuments($) {
           fileurl
         }
       })
-      .get() // Mais pourquoi ?
+      .get()
   }
   return listOfRecents.concat(listOfOlds)
 }
