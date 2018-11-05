@@ -1,3 +1,7 @@
+process.env.SENTRY_DSN =
+  process.env.SENTRY_DSN ||
+  'https://56c58c44aec84354b340322da288e886@sentry.cozycloud.cc/60'
+
 const {
   BaseKonnector,
   requestFactory,
@@ -5,10 +9,6 @@ const {
   saveBills,
   log
 } = require('cozy-konnector-libs')
-
-process.env.SENTRY_DSN =
-  process.env.SENTRY_DSN ||
-  'https://56c58c44aec84354b340322da288e886@sentry.cozycloud.cc/60'
 
 const moment = require('moment')
 const request = requestFactory({
