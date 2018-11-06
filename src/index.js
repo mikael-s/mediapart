@@ -174,7 +174,7 @@ function parseDocuments($) {
         }
       } catch (err) {
         log('warn', 'Impossible to parse one line')
-        log('warn', err)
+        log('warn', JSON.stringify(err))
       }
     })
     .get()
