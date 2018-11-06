@@ -26,9 +26,6 @@ const request = requestFactory({
 
 module.exports = new BaseKonnector(start)
 
-// The start function is run by the BaseKonnector instance only when it got all the account
-// information (fields). When you run this connector yourself in "standalone" mode or "dev" mode,
-// the account information come from ./konnector-dev-config.json file
 async function start(fields) {
   log('info', 'Authenticating ...')
   await authenticate(fields.login, fields.password)
@@ -53,8 +50,6 @@ async function start(fields) {
   })
 }
 
-// this shows authentication using the [signin function](https://github.com/konnectors/libs/blob/master/packages/cozy-konnector-libs/docs/api.md#module_signin)
-// even if this in another domain here, but it works as an example
 function authenticate(name, password) {
   return signin({
     url: 'https://www.mediapart.fr/',
@@ -75,8 +70,18 @@ function authenticate(name, password) {
   })
 }
 
-// The goal of this function is to parse a html page wrapped by a cheerio instance
-// and return an array of js objects which will be saved to the cozy by saveBills (https://github.com/cozy/cozy-konnector-libs/blob/master/docs/api.md#savebills)
+/* This function scrape differents tables found
+   About html:
+     - 2 kind of table are found, one with <li> contains recents bills (11€)
+     one with <tr> contains old bills (9€)
+     - When account is old and not use anymore, bills are concat in only a <tr> table
+     - When some gift card(for mediapart or courrier international is used, some line can
+     have no pdf and no price
+   Strategy :
+     We try to scrape about all <li> and all <tr> in all table found.
+     Most known errors was about <tr> being not a bill line scrapable (header, gift card)
+     Bad <tr> part are avoid by their missing 'valign: middle' or their missing pdf link
+*/
 function parseDocuments($) {
   // Common constantes
   const vendor = 'Mediapart'
@@ -118,18 +123,17 @@ function parseDocuments($) {
       }
     })
     .get()
+  log('debug', `${listOfRecents.length} bills found in <li> style table`)
 
-  // This table is different, need to be scrape separatly
   let listOfOlds = []
-  if ($('table').length >= 2) {
-    listOfOlds = $('table')
-      .eq(1)
-      .find('tr')
-      .filter(function(idx) {
-        // Filter 2 first lines of this table because of html junk
-        return !(idx === 0 || idx === 1)
-      })
-      .map(function(idx, tr) {
+  listOfOlds = $('table tr')
+    .filter(function(idx, tr) {
+      return (
+        $(tr).attr('valign') === 'middle' && $(tr).find('a').length !== 0 // Throw lines not format like a bill line
+      ) // Throw lines with no pdf link as subcribe gift
+    })
+    .map(function(idx, tr) {
+      try {
         const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d).*/
         const [, start, end] = $(tr)
           .find('td')
@@ -168,8 +172,13 @@ function parseDocuments($) {
           filename,
           fileurl
         }
-      })
-      .get()
-  }
+      } catch (err) {
+        log('warn', 'Impossible to parse one line')
+        log('warn', err)
+      }
+    })
+    .get()
+  log('debug', `${listOfOlds.length} bills found in <tr> style table`)
+
   return listOfRecents.concat(listOfOlds)
 }
