@@ -90,36 +90,44 @@ function parseDocuments($) {
   const metadata = { date, version }
 
   const listOfRecents = $('table li')
+    .filter(function(idx, li) {
+      return $(li).find('a').length !== 0 // Throw line without pdf link
+    })
     .map(function(idx, li) {
-      const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s.]*(\d+,\d\d)\s+(\S+).*/
-      const [, start, end, price, currency] = $(li)
-        .text()
-        .match(re)
-      const oStart = moment.utc(start, 'DD/MM/YYYY')
-      const oEnd = moment.utc(end, 'DD/MM/YYYY')
-      const startDate = oStart.format('YYYY-MM-DD')
-      const endDate = oEnd.format('YYYY-MM-DD')
-      const date = oEnd.toDate()
-      const href = $('a', li)
-        .first()
-        .attr('href')
-      const fileurl = `https://moncompte.mediapart.fr/base/moncompte/${href}`
-      const billId = href.match(/get_facture=([^&]+)/)[1]
-      const title = `Mediapart ${billId} ${startDate} - ${endDate}`
-      const filename = `mediapart_${billId}_${startDate}_${endDate}.pdf`
-      const amount = parseFloat(price.replace(',', '.'))
-      return {
-        title,
-        metadata,
-        date,
-        startDate,
-        endDate,
-        amount,
-        vendor,
-        billId,
-        currency,
-        filename,
-        fileurl
+      try {
+        const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s.]*(\d+,\d\d)\s+(\S+).*/
+        const [, start, end, price, currency] = $(li)
+          .text()
+          .match(re)
+        const oStart = moment.utc(start, 'DD/MM/YYYY')
+        const oEnd = moment.utc(end, 'DD/MM/YYYY')
+        const startDate = oStart.format('YYYY-MM-DD')
+        const endDate = oEnd.format('YYYY-MM-DD')
+        const date = oEnd.toDate()
+        const href = $('a', li)
+          .first()
+          .attr('href')
+        const fileurl = `https://moncompte.mediapart.fr/base/moncompte/${href}`
+        const billId = href.match(/get_facture=([^&]+)/)[1]
+        const title = `Mediapart ${billId} ${startDate} - ${endDate}`
+        const filename = `mediapart_${billId}_${startDate}_${endDate}.pdf`
+        const amount = parseFloat(price.replace(',', '.'))
+        return {
+          title,
+          metadata,
+          date,
+          startDate,
+          endDate,
+          amount,
+          vendor,
+          billId,
+          currency,
+          filename,
+          fileurl
+        }
+      } catch (err) {
+        log('warn', 'Impossible to parse one line')
+        log('warn', JSON.stringify(err))
       }
     })
     .get()
@@ -128,9 +136,9 @@ function parseDocuments($) {
   let listOfOlds = []
   listOfOlds = $('table tr')
     .filter(function(idx, tr) {
-      return (
-        $(tr).attr('valign') === 'middle' && $(tr).find('a').length !== 0 // Throw lines not format like a bill line
-      ) // Throw lines with no pdf link as subcribe gift
+      // Throw lines not format like a bill line
+      // Throw lines with no pdf link as subcribe gift
+      return $(tr).attr('valign') === 'middle' && $(tr).find('a').length !== 0
     })
     .map(function(idx, tr) {
       try {
