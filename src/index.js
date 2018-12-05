@@ -11,6 +11,8 @@ const {
 } = require('cozy-konnector-libs')
 
 const moment = require('moment')
+const USER_AGENT =
+  'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:62.0) Gecko/20100101 Firefox/62.0 Cozycloud'
 const request = requestFactory({
   // the debug mode shows all the details about http request and responses. Very usefull for
   // debugging but very verbose. That is why it is commented out by default
@@ -21,7 +23,10 @@ const request = requestFactory({
   // default in cozy-konnector-libs
   json: false,
   // this allows request-promise to keep cookies between requests
-  jar: true
+  jar: true,
+  headers: {
+    'User-Agent': USER_AGENT
+  }
 })
 
 module.exports = new BaseKonnector(start)
@@ -123,7 +128,12 @@ function parseDocuments($) {
           billId,
           currency,
           filename,
-          fileurl
+          fileurl,
+          requestOptions: {
+            headers: {
+              'User-Agent': USER_AGENT
+            }
+          }
         }
       } catch (err) {
         log('warn', 'Impossible to parse one line')
