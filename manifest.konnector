@@ -1,11 +1,11 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "name": "Mediapart",
   "type": "konnector",
   "language": "node",
   "icon": "icon.png",
   "slug": "mediapart",
-  "source": "git://github.com/konnectors/mediapart.git",
+  "source": "git@github.com:konnectors/mediapart.git",
   "editor": "Cozy",
   "vendor_link": "https://www.mediapart.fr/",
   "categories": [
