@@ -3,7 +3,7 @@
   "name": "Mediapart",
   "type": "konnector",
   "language": "node",
-  "icon": "icon.png",
+  "icon": "icon.svg",
   "slug": "mediapart",
   "source": "git@github.com:konnectors/mediapart.git",
   "editor": "Cozy",
