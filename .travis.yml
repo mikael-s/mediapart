@@ -1,9 +1,9 @@
 language: node_js
 node_js:
-- '8'
+- '12'
 env:
   global:
-  - DEPLOY_REPOSITORY="git@github.com:konnectors/mediapart.git"
+  # REGISTRY_TOKEN(editor=cozy, app=mediapart)
   - secure: 3mqRKSme7y+M/tmCxQmwM8HiadtNpcmw7mE2ffuKD5FhHjKO5G8RrzF1rKyQADLiumhjSjJtZdo6x7858+TA29fl4hSTeqHhgqSRS3uXIzKXesL+8GVMxiQtk6z7Fo7jMQ7TicVgNUSPJsrLu1WfdcDerNwlOt/wBOEfcu2C7/4W971+YFgA/gO/DGsIeNockWKu+g3VuFOK+FYOL8i5KSF45Q0uPVZeJj188BeOmxztVzPDIceZTF5x9T0mYD33wpw77UHByxIN70pjFiNaFewwcGqzvoTJ0dh8Zd8Q8JAYUTxT+xqk/mgJP1U8rFgfAyrXoSf+bX6DzvWk5AhaBcETZc+lA0o8eYg+0TRgSW6fyaP1mR0EJJ2f29LpsqsmUmVLN1frU8gNWQfDgqeC88gGujSwxrbmDy2AUz/6Ail8ECYjxF8BBnKB6la/RHwBYT+MwGl9qn7hWKlAoge+atY2PXzYVgeRFKxHtvdje7crr0U6an1c0pop3CRGonN0TojnzmFWfAsVF7IH78NjTSdxWwdi0ALQzjioa0TvdVXbV/5FUxSYV6NNGGc40kBvDIjUY9pmmgyj0OH24EYm0tXNYSqfhXb+0R7QrQVC6HgjdEpJ9EnNFAiFxplDlU576/OSYnk4OeXLETgeOVmSj4J4lHjWcZNkXdPVty4NQJ8=
 cache:
   yarn: true
@@ -16,7 +16,6 @@ branches:
 script:
 - yarn lint
 - yarn build
-- yarn run check
 deploy:
 - provider: script
   skip-cleanup: true
