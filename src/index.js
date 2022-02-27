@@ -57,7 +57,7 @@ async function start(fields) {
 
 function authenticate(name, password) {
   return signin({
-    url: 'https://www.mediapart.fr/',
+    url: 'https://www.mediapart.fr/login',
     formSelector: '#logFormEl',
     formData: { name, password },
     // the validate function will check if
