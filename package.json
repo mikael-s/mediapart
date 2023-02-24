@@ -1,10 +1,10 @@
 {
   "name": "mediapart",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Fetch Mediapart bills",
   "repository": {
     "type": "git",
-    "url": "git@github.com:konnectors/cozy-konnector-mediapart.git"
+    "url": "git@github.com:mikael-s/mediapart.git"
   },
   "keywords": [
     "cozy",
