@@ -37,16 +37,8 @@ async function start(fields) {
   log('info', 'Successfully logged in')
   log('info', 'Getting the session id')
   const $compte = await request('https://moncompte.mediapart.fr/')
-  const session = $compte('iframe[src*=moncompte]')
-    .first()
-    .attr('src')
-    .match(/sess=([^&]*)/)[1]
-  log('info', 'Fetching the list of documents')
-  const $list = await request(
-    `https://moncompte.mediapart.fr/base/moncompte/ajax/index.php?abonnement=0&sess=${session}`
-  )
   log('info', 'Parsing list of documents')
-  const documents = await parseDocuments($list)
+  const documents = await parseDocuments($compte)
   log('debug', documents, 'docs')
   log('info', 'Saving data to Cozy')
   await saveBills(documents, fields.folderPath, {
@@ -77,9 +69,8 @@ function authenticate(name, password) {
 
 /* This function scrape differents tables found
    About html:
-     - 2 kind of table are found, one with <li> contains recents bills (11€)
-     one with <tr> contains old bills (9€)
-     - When account is old and not use anymore, bills are concat in only a <tr> table
+     - one <div> with <li> contains  bills 
+     - When account is old and not use anymore, bills are concat in only a <tr> table [Not sure that's still the case]
      - When some gift card(for mediapart or courrier international is used, some line can
      have no pdf and no price
    Strategy :
@@ -94,13 +85,13 @@ function parseDocuments($) {
   const version = 1
   const metadata = { date, version }
 
-  const listOfRecents = $('table li')
+  const listOfRecents = $('#billing-list li')
     .filter(function(idx, li) {
       return $(li).find('a').length !== 0 // Throw line without pdf link
     })
     .map(function(idx, li) {
       try {
-        const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s.]*(\d+,\d\d)\s+(\S+).*/
+        const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d)[\s\S]*\s+(\d+(?:[,.]\d+)?)\s+(\S+).*/m
         const [, start, end, price, currency] = $(li)
           .text()
           .match(re)
@@ -112,8 +103,8 @@ function parseDocuments($) {
         const href = $('a', li)
           .first()
           .attr('href')
-        const fileurl = `https://moncompte.mediapart.fr/base/moncompte/${href}`
-        const billId = href.match(/get_facture=([^&]+)/)[1]
+        const fileurl = `https://moncompte.mediapart.fr${href}`
+        const billId = href.match(/facture\/([^/]+)\//)[1]
         const title = `Mediapart ${billId} ${startDate} - ${endDate}`
         const filename = `mediapart_${billId}_${startDate}_${endDate}.pdf`
         const amount = parseFloat(price.replace(',', '.'))
@@ -143,60 +134,6 @@ function parseDocuments($) {
     .get()
   log('debug', `${listOfRecents.length} bills found in <li> style table`)
 
-  let listOfOlds = []
-  listOfOlds = $('table tr')
-    .filter(function(idx, tr) {
-      // Throw lines not format like a bill line
-      // Throw lines with no pdf link as subcribe gift
-      return $(tr).attr('valign') === 'middle' && $(tr).find('a').length !== 0
-    })
-    .map(function(idx, tr) {
-      try {
-        const re = /.*(\d\d\/\d\d\/\d\d\d\d).*(\d\d\/\d\d\/\d\d\d\d).*/
-        const [, start, end] = $(tr)
-          .find('td')
-          .text()
-          .trim()
-          .match(re)
-        const oStart = moment.utc(start, 'DD/MM/YYYY')
-        const oEnd = moment.utc(end, 'DD/MM/YYYY')
-        const startDate = oStart.format('YYYY-MM-DD')
-        const endDate = oEnd.format('YYYY-MM-DD')
-        const date = oEnd.toDate()
-        const [price, currency] = $(tr)
-          .find('td')
-          .eq(1)
-          .text()
-          .trim()
-          .split('\xa0') // Unbreakable space
-        const href = $('a', tr)
-          .first()
-          .attr('href')
-        const fileurl = `https://moncompte.mediapart.fr/base/moncompte/${href}`
-        const billId = href.match(/get_facture=([^&]+)/)[1]
-        const title = `Mediapart ${billId} ${startDate} - ${endDate}`
-        const filename = `mediapart_${billId}_${startDate}_${endDate}.pdf`
-        const amount = parseFloat(price.replace(',', '.'))
-        return {
-          title,
-          metadata,
-          date,
-          startDate,
-          endDate,
-          amount,
-          vendor,
-          billId,
-          currency,
-          filename,
-          fileurl
-        }
-      } catch (err) {
-        log('warn', 'Impossible to parse one line')
-        log('warn', JSON.stringify(err))
-      }
-    })
-    .get()
-  log('debug', `${listOfOlds.length} bills found in <tr> style table`)
 
-  return listOfRecents.concat(listOfOlds)
+  return listOfRecents
 }
